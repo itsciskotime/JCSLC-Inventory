@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Borrowing Records - JCSLC Science Inventory</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .search-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .search-filter-bar input[type="text"] {
+      padding: 7px 13px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.95em;
+      width: 240px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-filter-bar input[type="text"]:focus {
+      border-color: #c0392b;
+      box-shadow: 0 0 0 2px rgba(192,57,43,0.15);
+    }
+    .search-filter-bar select {
+      padding: 7px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.95em;
+      outline: none;
+    }
+    .badge-overdue {
+      display: inline-block;
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 0.78em;
+      font-weight: 700;
+    }
+    .badge-due-soon {
+      display: inline-block;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 0.78em;
+      font-weight: 700;
+    }
+    .badge-ok {
+      display: inline-block;
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      padding: 2px 9px;
+      border-radius: 10px;
+      font-size: 0.78em;
+      font-weight: 700;
+    }
+    .records-summary {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .summary-card {
+      flex: 1;
+      min-width: 140px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 16px 20px;
+      text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .summary-card .summary-num {
+      font-size: 2em;
+      font-weight: 800;
+      color: #c0392b;
+      line-height: 1.1;
+    }
+    .summary-card .summary-label {
+      font-size: 0.82em;
+      color: #666;
+      margin-top: 4px;
+    }
+    #records-table th {
+      white-space: nowrap;
+    }
+    .empty-msg {
+      text-align: center;
+      color: #aaa;
+      padding: 32px;
+      font-size: 1em;
+    }
+    .item-thumb {
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo.jpg" width="140" height="140" alt="logo" />
+    <div class="box">
+      <h1>Current Borrowing Records</h1>
+    </div>
+    <nav class="top-nav">
+      <a href="home.html">Home</a>
+      <a href="index.html">Borrow</a>
+      <a href="return.html">Return</a>
+      <a href="records.html" class="active">Records</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="box">
+
+      <!-- Summary cards -->
+      <div class="records-summary">
+        <div class="summary-card">
+          <div class="summary-num" id="stat-total">0</div>
+          <div class="summary-label">Total Records</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-num" id="stat-overdue" style="color:#c0392b;">0</div>
+          <div class="summary-label">Overdue</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-num" id="stat-due-soon" style="color:#856404;">0</div>
+          <div class="summary-label">Due Within 24h</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-num" id="stat-ok" style="color:#155724;">0</div>
+          <div class="summary-label">On Time</div>
+        </div>
+      </div>
+
+      <!-- Search + filter -->
+      <div class="search-filter-bar">
+        <label for="rec-search">Search:</label>
+        <input type="text" id="rec-search" placeholder="Borrower name or item..." />
+        <label for="rec-status-filter">Status:</label>
+        <select id="rec-status-filter">
+          <option value="All">All</option>
+          <option value="Overdue">Overdue</option>
+          <option value="Due Soon">Due Soon</option>
+          <option value="On Time">On Time</option>
+        </select>
+      </div>
+
+      <!-- Records table -->
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Borrower</th>
+            <th>Grade &amp; Section</th>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Date Borrowed</th>
+            <th>Return Deadline</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="records-table"></tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 JCSLC Grade 12 AJCA ICT Researchers</p>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    let searchVal = "";
+    let statusFilter = "All";
+
+    function getRecordStatus(returnDeadline) {
+      if (!returnDeadline) return "On Time";
+      const now = new Date();
+      const deadline = new Date(returnDeadline);
+      const diffMs = deadline - now;
+      if (diffMs < 0) return "Overdue";
+      if (diffMs < 24 * 60 * 60 * 1000) return "Due Soon";
+      return "On Time";
+    }
+
+    function renderRecords() {
+      const tbody = document.getElementById("records-table");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      const q = searchVal.toLowerCase().trim();
+
+      let total = 0, overdue = 0, dueSoon = 0, ok = 0;
+
+      const filtered = borrowedItems.filter((b, idx) => {
+        const status = getRecordStatus(b.returnDeadline);
+        const matchSearch = !q ||
+          b.borrower.toLowerCase().includes(q) ||
+          b.itemName.toLowerCase().includes(q) ||
+          (b.gradeSection && b.gradeSection.toLowerCase().includes(q));
+        const matchStatus = statusFilter === "All" || status === statusFilter;
+        return matchSearch && matchStatus;
+      });
+
+      // Compute summary from all records (ignoring filters)
+      borrowedItems.forEach(b => {
+        const s = getRecordStatus(b.returnDeadline);
+        total++;
+        if (s === "Overdue") overdue++;
+        else if (s === "Due Soon") dueSoon++;
+        else ok++;
+      });
+
+      document.getElementById("stat-total").textContent = total;
+      document.getElementById("stat-overdue").textContent = overdue;
+      document.getElementById("stat-due-soon").textContent = dueSoon;
+      document.getElementById("stat-ok").textContent = ok;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-msg">No borrowing records found.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach((b) => {
+        const realIdx = borrowedItems.indexOf(b);
+        const status = getRecordStatus(b.returnDeadline);
+        let badgeHtml = "";
+        if (status === "Overdue")        badgeHtml = `<span class="badge-overdue">⚠ Overdue</span>`;
+        else if (status === "Due Soon")  badgeHtml = `<span class="badge-due-soon">⏰ Due Soon</span>`;
+        else                             badgeHtml = `<span class="badge-ok">✓ On Time</span>`;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${realIdx + 1}</td>
+          <td>${b.borrower}</td>
+          <td>${b.gradeSection || "—"}</td>
+          <td>
+            <img class="item-thumb" src="${b.itemImage || ''}" alt="${b.itemName}" onerror="this.style.display='none'">
+            ${b.itemName}
+          </td>
+          <td>${b.quantity}</td>
+          <td>${formatDatetime(b.dateBorrowed)}</td>
+          <td>${formatDatetime(b.returnDeadline)}</td>
+          <td>${badgeHtml}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function formatDatetime(val) {
+      if (!val) return "—";
+      const d = new Date(val);
+      if (isNaN(d)) return val;
+      return d.toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
+    }
+
+    // Search
+    document.getElementById("rec-search").addEventListener("input", function () {
+      searchVal = this.value;
+      renderRecords();
+    });
+
+    // Status filter
+    document.getElementById("rec-status-filter").addEventListener("change", function () {
+      statusFilter = this.value;
+      renderRecords();
+    });
+
+    window.addEventListener("load", function () {
+      renderRecords();
+    });
+  </script>
+</body>
+</html>

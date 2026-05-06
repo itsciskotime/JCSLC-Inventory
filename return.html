@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Return Items - JCSLC Inventory</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Return Modal ── */
+    .return-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .return-modal-overlay.active { display: flex; }
+
+    .return-modal {
+      background: #fff;
+      border-radius: 14px;
+      padding: 0;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      overflow: hidden;
+      animation: modalIn 0.22s ease;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(30px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    .return-modal-header {
+      background: #c0392b;
+      color: #fff;
+      padding: 18px 24px 14px;
+    }
+    .return-modal-header h3 { margin: 0; font-size: 1.1em; }
+    .return-modal-header p  { margin: 4px 0 0; font-size: 0.85em; opacity: 0.85; }
+
+    .return-modal-body {
+      padding: 20px 24px;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    .return-modal-body label {
+      display: block;
+      font-size: 0.88em;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+      margin-top: 14px;
+    }
+    .return-modal-body label:first-child { margin-top: 0; }
+
+    .return-modal-body select,
+    .return-modal-body textarea {
+      width: 100%;
+      padding: 8px 11px;
+      border: 1px solid #ccc;
+      border-radius: 7px;
+      font-size: 0.93em;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+      resize: vertical;
+    }
+    .return-modal-body select:focus,
+    .return-modal-body textarea:focus {
+      border-color: #c0392b;
+      box-shadow: 0 0 0 2px rgba(192,57,43,0.12);
+    }
+
+    /* Condition comparison row */
+    .condition-compare {
+      display: flex;
+      gap: 12px;
+      margin-top: 2px;
+    }
+    .condition-compare > div { flex: 1; }
+    .condition-compare label { margin-top: 0; }
+
+    .condition-readonly {
+      padding: 7px 11px;
+      border-radius: 7px;
+      font-size: 0.88em;
+      font-weight: 600;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+      color: #555;
+    }
+
+    /* Star rating */
+    .star-rating {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .star-rating input[type="radio"] { display: none; }
+    .star-rating label {
+      font-size: 1.7em;
+      cursor: pointer;
+      color: #ddd;
+      transition: color 0.15s;
+      margin: 0;
+      line-height: 1;
+    }
+    .star-rating input[type="radio"]:checked ~ label,
+    .star-rating label:hover,
+    .star-rating label:hover ~ label { color: #f0ad4e; }
+    /* RTL trick for hover fill */
+    .star-rating { flex-direction: row-reverse; justify-content: flex-end; }
+    .star-rating label:hover,
+    .star-rating label:hover ~ label { color: #f0ad4e; }
+    .star-rating input[type="radio"]:checked ~ label { color: #f0ad4e; }
+
+    .rating-desc {
+      font-size: 0.82em;
+      color: #888;
+      margin-top: 4px;
+      min-height: 18px;
+    }
+
+    .section-divider {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 18px 0 4px;
+    }
+    .section-title {
+      font-size: 0.78em;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #c0392b;
+      margin-bottom: 10px;
+    }
+
+    .return-modal-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding: 14px 24px 18px;
+      border-top: 1px solid #eee;
+    }
+    .btn-confirm-return {
+      background: #c0392b;
+      color: #fff;
+      border: none;
+      padding: 9px 22px;
+      border-radius: 7px;
+      font-size: 0.95em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-confirm-return:hover { background: #a93226; }
+    .btn-cancel-return {
+      background: #f0f0f0;
+      color: #333;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 7px;
+      font-size: 0.95em;
+      cursor: pointer;
+    }
+    .btn-cancel-return:hover { background: #e0e0e0; }
+
+    /* Table return button */
+    .btn-return-row {
+      background: #c0392b;
+      color: #fff;
+      border: none;
+      padding: 5px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.88em;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn-return-row:hover { background: #a93226; }
+
+    .item-thumb {
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    .empty-msg {
+      text-align: center;
+      color: #aaa;
+      padding: 32px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo.jpg" width="140" height="140" alt="logo">
+    <div class="box">
+      <h1>Return Borrowed Items</h1>
+    </div>
+    <nav class="top-nav">
+      <a href="home.html">Home</a>
+      <a href="index.html">Borrow</a>
+      <a href="return.html" class="active">Return</a>
+      <a href="records.html">Records</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="box">
+      <h2>Items to Return</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Borrower</th>
+            <th>Grade &amp; Section</th>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Date Borrowed</th>
+            <th>Return Deadline</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="return-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Return Modal ── -->
+  <div class="return-modal-overlay" id="return-modal-overlay">
+    <div class="return-modal">
+
+      <div class="return-modal-header">
+        <h3>Return Item</h3>
+        <p id="modal-item-label">Item name · Borrower</p>
+      </div>
+
+      <div class="return-modal-body">
+
+        <!-- Condition Section -->
+        <div class="section-title">Item Condition</div>
+        <div class="condition-compare">
+          <div>
+            <label>Condition Before Borrowing</label>
+            <div class="condition-readonly" id="modal-condition-before">Good</div>
+          </div>
+          <div>
+            <label>Condition After Return</label>
+            <select id="modal-condition-after">
+              <option value="Excellent">Excellent</option>
+              <option value="Good" selected>Good</option>
+              <option value="Fair">Fair</option>
+              <option value="Minor Damage">Minor Damage</option>
+              <option value="Broken / Damaged">Broken / Damaged</option>
+            </select>
+          </div>
+        </div>
+
+        <label style="margin-top:14px;">Remarks on Condition <span style="font-weight:400;color:#999;">(optional)</span></label>
+        <textarea id="modal-condition-remarks" rows="2" placeholder="e.g. Small crack on the handle, otherwise functional..."></textarea>
+
+        <hr class="section-divider">
+
+        <!-- Experience Rating Section -->
+        <div class="section-title">Your Experience</div>
+
+        <label>How would you rate your borrowing experience?</label>
+        <div class="star-rating" id="star-rating-group">
+          <input type="radio" name="exp-rating" id="star5" value="5"><label for="star5" title="Excellent">★</label>
+          <input type="radio" name="exp-rating" id="star4" value="4"><label for="star4" title="Good">★</label>
+          <input type="radio" name="exp-rating" id="star3" value="3"><label for="star3" title="Average">★</label>
+          <input type="radio" name="exp-rating" id="star2" value="2"><label for="star2" title="Poor">★</label>
+          <input type="radio" name="exp-rating" id="star1" value="1"><label for="star1" title="Very Poor">★</label>
+        </div>
+        <div class="rating-desc" id="rating-desc">Click a star to rate</div>
+
+        <label style="margin-top:12px;">Comments <span style="font-weight:400;color:#999;">(optional)</span></label>
+        <textarea id="modal-experience-comments" rows="2" placeholder="e.g. The item was easy to use, staff were helpful..."></textarea>
+
+      </div>
+
+      <div class="return-modal-footer">
+        <button class="btn-cancel-return" id="modal-cancel-btn">Cancel</button>
+        <button class="btn-confirm-return" id="modal-confirm-btn">✓ Confirm Return</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2026 JCSLC Grade 12 AJCA ICT Researchers</p>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    let pendingReturnIndex = null;
+
+    const ratingLabels = {
+      1: "⭐ Very Poor — We'll work to improve.",
+      2: "⭐⭐ Poor — Sorry to hear that.",
+      3: "⭐⭐⭐ Average — Thank you for the feedback.",
+      4: "⭐⭐⭐⭐ Good — Glad you had a smooth experience!",
+      5: "⭐⭐⭐⭐⭐ Excellent — Thank you so much!"
+    };
+
+    // Update star rating description
+    document.querySelectorAll('input[name="exp-rating"]').forEach(radio => {
+      radio.addEventListener("change", function () {
+        document.getElementById("rating-desc").textContent = ratingLabels[this.value] || "";
+      });
+    });
+
+    function renderReturnList() {
+      const list = document.getElementById('return-list');
+      if (!list) return;
+      list.innerHTML = '';
+
+      if (!borrowedItems || borrowedItems.length === 0) {
+        list.innerHTML = `<tr><td colspan="7" class="empty-msg">No items currently borrowed.</td></tr>`;
+        return;
+      }
+
+      borrowedItems.forEach((b, idx) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${b.borrower}</td>
+          <td>${b.gradeSection || "—"}</td>
+          <td>
+            <img class="item-thumb" src="${b.itemImage || ''}" alt="${b.itemName}" onerror="this.style.display='none'">
+            ${b.itemName}
+          </td>
+          <td>${b.quantity}</td>
+          <td>${formatReturnDate(b.dateBorrowed)}</td>
+          <td>${formatReturnDate(b.returnDeadline)}</td>
+          <td><button class="btn-return-row" onclick="openReturnModal(${idx})">Return</button></td>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function formatReturnDate(val) {
+      if (!val) return "—";
+      const d = new Date(val);
+      if (isNaN(d)) return val;
+      return d.toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
+    }
+
+    function openReturnModal(index) {
+      const record = borrowedItems[index];
+      if (!record) return;
+      pendingReturnIndex = index;
+
+      // Populate modal info
+      document.getElementById("modal-item-label").textContent =
+        `${record.itemName}  ·  ${record.borrower}`;
+
+      // Condition before (from record or item master)
+      const itemRef = (typeof items !== "undefined") ? items.find(i => i.name === record.itemName) : null;
+      const condBefore = record.conditionBefore || (itemRef && itemRef.condition) || "Good";
+      document.getElementById("modal-condition-before").textContent = condBefore;
+
+      // Reset form fields
+      document.getElementById("modal-condition-after").value = "Good";
+      document.getElementById("modal-condition-remarks").value = "";
+      document.getElementById("modal-experience-comments").value = "";
+      document.querySelectorAll('input[name="exp-rating"]').forEach(r => r.checked = false);
+      document.getElementById("rating-desc").textContent = "Click a star to rate";
+
+      document.getElementById("return-modal-overlay").classList.add("active");
+    }
+
+    function closeReturnModal() {
+      document.getElementById("return-modal-overlay").classList.remove("active");
+      pendingReturnIndex = null;
+    }
+
+    function confirmReturn() {
+      if (pendingReturnIndex === null) return;
+      const record = borrowedItems[pendingReturnIndex];
+      if (!record) return;
+
+      const conditionAfter   = document.getElementById("modal-condition-after").value;
+      const conditionRemarks = document.getElementById("modal-condition-remarks").value.trim();
+      const ratingEl         = document.querySelector('input[name="exp-rating"]:checked');
+      const experienceRating = ratingEl ? parseInt(ratingEl.value) : null;
+      const expComments      = document.getElementById("modal-experience-comments").value.trim();
+
+      // Attach return details to record before removing (optional: log to a returnedItems array if script.js supports it)
+      record.conditionAfter      = conditionAfter;
+      record.conditionRemarks    = conditionRemarks;
+      record.experienceRating    = experienceRating;
+      record.experienceComments  = expComments;
+      record.returnedAt          = new Date().toISOString();
+
+      // Restore item quantity
+      const item = (typeof items !== "undefined") ? items.find(i => i.name === record.itemName) : null;
+      if (item) item.quantity += record.quantity;
+
+      // Remove from borrowed list
+      borrowedItems.splice(pendingReturnIndex, 1);
+      saveState();
+      closeReturnModal();
+      renderReturnList();
+      showToast("✅ Item returned successfully!", "success");
+    }
+
+    // Modal button listeners
+    document.getElementById("modal-cancel-btn").addEventListener("click", closeReturnModal);
+    document.getElementById("modal-confirm-btn").addEventListener("click", confirmReturn);
+
+    // Close on overlay click
+    document.getElementById("return-modal-overlay").addEventListener("click", function (e) {
+      if (e.target === this) closeReturnModal();
+    });
+
+    window.addEventListener('load', function () {
+      renderReturnList();
+    });
+  </script>
+</body>
+</html>

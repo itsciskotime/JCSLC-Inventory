@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Borrow - JCSLC Science Inventory</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      .condition-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.78em;
+        font-weight: 600;
+        white-space: normal;
+        word-break: break-word;
+        max-width: 160px;
+      }
+      .condition-good    { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+      .condition-warning { background:#fff3cd; color:#856404; border:1px solid #ffeeba; }
+      .condition-bad     { background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; }
+      .description-cell  { color:#555; font-size:0.88em; }
+      .category-chemicals { background:#e8d5f5; color:#5b2c8d; border:1px solid #d2a8f0; }
+
+      #search-bar {
+        margin-left: 16px;
+        padding: 6px 12px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 0.95em;
+        width: 220px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      #search-bar:focus {
+        border-color: #c0392b;
+        box-shadow: 0 0 0 2px rgba(192,57,43,0.15);
+      }
+    </style>
+</head>
+<body>
+    <header>
+      <img src="logo.jpg" width="140" height="140" />
+      <div class="box">
+        <h1>JCSLC Borrowing and Inventory System</h1>
+      </div>
+      <nav class="top-nav">
+        <a href="home.html">Home</a>
+        <a href="index.html">Borrow</a>
+        <a href="return.html">Return</a>
+        <a href="records.html">Records</a>
+      </nav>
+    </header>
+
+    <div class="container">
+        <div class="box">
+          <h2>Science Equipment Inventory</h2>
+
+          <!-- Filters -->
+          <div class="filter-bar">
+            <label for="category-filter">Filter by Category:</label>
+            <select id="category-filter"></select>
+            <input type="text" id="search-bar" placeholder=" Search equipment...">
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Equipment Name</th>
+                <th>Description / Quality</th>
+                <th>Category</th>
+                <th>In Stock</th>
+                <th>Condition</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="borrow-items-table"></tbody>
+          </table>
+        </div>
+    </div>
+
+   <form id="borrow-form">
+  <div class="borrow-form-header-box">
+    <h3>Borrowing: <span id="borrow-item-name"></span></h3>
+  </div>
+
+  <div class="form-scroll-area">
+    <label>Full Name</label>
+    <input type="text" id="borrower-name" placeholder="Enter Full Name" required>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Grade &amp; Section</label>
+        <input type="text" id="grade-section" placeholder="Enter Grade and Section" required>
+      </div>
+      <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" id="quantity" min="1" value="1" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="borrower-email" placeholder="Enter Email Address" required>
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" id="borrower-phone" placeholder="09123456789" required>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date Borrowed</label>
+        <input type="datetime-local" id="borrow-time" required>
+      </div>
+      <div class="form-group">
+        <label>Expected Return</label>
+        <input type="datetime-local" id="return-deadline" required>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="submit" class="btn-confirm">Confirm Transaction</button>
+    <button type="button" id="cancel-borrow" class="btn-cancel">Cancel</button>
+  </div>
+</form>
+
+    <footer>
+        <p>&copy; 2026 JCSLC Grade 12 AJCA ICT Researchers</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
